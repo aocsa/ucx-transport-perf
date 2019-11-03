@@ -1,6 +1,6 @@
 #pragma once
 
-#include "blazingdb/utils/macros.h"
+#include "blazingsql/utils/macros.h"
 #include "message.hpp"
 #include <atomic>
 #include <functional>

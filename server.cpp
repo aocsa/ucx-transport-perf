@@ -1,4 +1,4 @@
-#include "blazingdb/api.hpp"
+#include "blazingsql/api.hpp"
 #include <gflags/gflags.h>
 
 DEFINE_int32(port, 5555, "Server port to listen on");

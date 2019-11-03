@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "blazingdb/utils/macros.h"
+#include "blazingsql/utils/macros.h"
 #include "socket.hpp"
 #include <atomic>
 #include <functional>
