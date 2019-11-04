@@ -47,20 +47,20 @@ ViewBuffer::SerializedRecord() const noexcept {
     memcpy((void*)bytes.data(), (uint8_t*)(&ipc_memhandle), sizeof(cudaIpcMemHandle_t));
   }
 
-  std::cout << "send-serialized: ";
-  for(auto c : bytes) {
-    std::cout << (int)c << ",";
-  }
-  std::cout << "\n";
+//  std::cout << "send-serialized: ";
+//  for(auto c : bytes) {
+//    std::cout << (int)c << ",";
+//  }
+//  std::cout << "\n";
   return std::make_unique<IpcViewSerialized>(bytes);
 }
 
 static void* CudaIpcMemHandlerFrom (const std::basic_string<uint8_t>& handler) {
-  std::cout << "buffer-received: ";
-  for(auto c : handler) {
-    std::cout << (int)c << ",";
-  }
-  std::cout << "\n";
+//  std::cout << "buffer-received: ";
+//  for(auto c : handler) {
+//    std::cout << (int)c << ",";
+//  }
+//  std::cout << "\n";
   void * response = nullptr;
   if (handler.size() == sizeof(cudaIpcMemHandle_t)) {
     if (handler == std::basic_string<uint8_t>(sizeof(cudaIpcMemHandle_t), '\0')) {

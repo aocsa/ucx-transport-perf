@@ -121,6 +121,5 @@ std::unique_ptr<Context> CreateUCXContext(std::string context_name){
     return Context::GDR();
   else if (context_name == "view")
     return Context::IPCView();
-
-  return nullptr;
+  assert(false);
 }

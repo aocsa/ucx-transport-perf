@@ -25,8 +25,8 @@ Result<bool, Status> ResolveCurrentExecutable(fs::path* out) {
 
 class TestServer {
 public:
-  explicit TestServer(const std::string& executable_name, int port)
-      : executable_name_(executable_name), port_(port) {}
+  explicit TestServer(const std::string& executable_name, int port, std::string str_context)
+      : executable_name_(executable_name), port_(port), str_context_(str_context) {}
 
   void Start() {
     namespace fs = boost::filesystem;
@@ -42,7 +42,7 @@ public:
     }
 
     try {
-      server_process_ = std::make_shared<bp::child>(bp::search_path(executable_name_, search_path), "-port", str_port);
+      server_process_ = std::make_shared<bp::child>(bp::search_path(executable_name_, search_path), "-port", str_port, "-context", str_context_);
     } catch (...) {
       std::stringstream ss;
       ss << "Failed to launch test server '" << executable_name_ << "', looked in ";
@@ -73,5 +73,6 @@ public:
 private:
   std::string executable_name_;
   int port_;
+  std::string str_context_;
   std::shared_ptr<boost::process::child> server_process_;
 };

@@ -5,33 +5,42 @@
 #include <boost/process.hpp>
 #include <gflags/gflags.h>
 #include "blazingsql/utils/server_process.h"
+#include "blazingdb/uc/API.hpp"
+#include "blazingsql/api.hpp"
+#include "constexpr_header.h"
 
 DEFINE_string(server_host, "",
 "An existing performance server to benchmark against (leave blank to spawn "
 "one automatically)");
 DEFINE_int32(server_port, 5555, "The port to connect to");
 DEFINE_int32(num_servers, 1, "Number of performance servers to run");
-DEFINE_int32(num_streams, 4, "Number of streams for each server");
-DEFINE_int32(num_threads, 4, "Number of concurrent gets");
-DEFINE_int32(records_per_stream, 10000000, "Total records per stream");
-DEFINE_int32(records_per_batch, 4096, "Total records per batch within stream");
+DEFINE_int32(num_threads, 1, "Number of concurrent gets");
+DEFINE_int32(records_per_stream, 1 << 15, "Total records per stream");
+DEFINE_int32(records_per_batch, 1, "Total records per batch within stream");
 DEFINE_bool(test_put, false, "Test DoPut instead of DoGet");
+DEFINE_string(context, "tcp", "UCX Context");
 
 std::atomic<size_t> counter{0};
 
 Result<PerformanceResult, Status> RunDoGetTest(Client* client,  std::vector<Message> & batches) {
-  // This is hard-coded for right now, 4 columns each with int64
+  using namespace blazingdb::uc;
   const int bytes_per_record = 32;
   int64_t num_bytes = 0;
   int64_t num_records = 0;
   for(auto& batch : batches) {
-    auto res = client->send(batch);
-    if (res.isOk()) {
-      std::cout << counter.load() << std::endl;
-      counter.store( counter.load() + 1);
-      num_records += batch.size();
-      num_bytes += batch.size() * bytes_per_record;
-    }
+    const void *data = CreateData(BUFFER_LENGTH, ownSeed, ownOffset);
+    auto context = CreateUCXContext(FLAGS_context);
+    auto agent   = context->Agent();
+    auto buffer  = agent->Register(data, BUFFER_LENGTH);
+
+    auto buffer_descriptors_serialized = buffer->SerializedRecord();
+    const uint8_t *buffer_descriptors = buffer_descriptors_serialized->Data();
+
+    Message msg((const char*)buffer_descriptors, buffer_descriptors_serialized->Size());
+    auto res = client->send(msg);
+    counter.store( counter.load() + 1);
+    num_records += BUFFER_LENGTH;
+    num_bytes += BUFFER_LENGTH * bytes_per_record;
   }
   return Ok(PerformanceResult{num_records, num_bytes});
 }
@@ -53,16 +62,13 @@ Result<bool, Status>  RunPerformanceTest(Client* client, bool test_put) {
   StopWatch timer;
   timer.Start();
 
+  //  thread_pool pool;
+  std::vector<Message> batches(FLAGS_records_per_stream, Message(""));
 
-//  thread_pool pool;
-  auto num_concurrent_clients = 8;
-  const int total_records = 1 << 10;
-  std::string s("*", total_records);
-  std::vector<Message> batches(total_records, Message(s));
-
+  auto num_concurrent_clients = FLAGS_num_threads;
   std::vector<std::thread> tasks;
   for (int index = 0; index < num_concurrent_clients; ++index) {
-//    tasks.emplace_back(pool.submit(ConsumeStream, batches));
+    //    tasks.emplace_back(pool.submit(ConsumeStream, batches));
     tasks.emplace_back(std::thread(ConsumeStream, std::ref(stats), client, std::ref(batches)));
   }
 
@@ -76,14 +82,15 @@ Result<bool, Status>  RunPerformanceTest(Client* client, bool test_put) {
   double time_elapsed =
       static_cast<double>(elapsed_nanos) / static_cast<double>(1000000000);
 
-  constexpr double kMegabyte = static_cast<double>(1 << 20);
+//  constexpr double kMegabyte = static_cast<double>(1 << 20);
+  constexpr double kMegabyte = static_cast<double>(1 << 10);
 
   // Check that number of rows read is as expected
 //  if (stats.total_records != static_cast<int64_t>(total_records)) {
 //    return Err(Status(StatusCode::Invalid, "Did not consume expected number of records"));
 //  }
   std::cout << "Bytes read: " << stats.total_bytes << std::endl;
-  std::cout << "Nanos: " << elapsed_nanos << std::endl;
+  std::cout << "Time: " << elapsed_nanos / 1000.0 / 1000.0 / 1000.0 << std::endl;
   std::cout << "Speed: "
             << (static_cast<double>(stats.total_bytes) / kMegabyte / time_elapsed)
             << " MB/s" << std::endl;
@@ -97,7 +104,7 @@ int main(int argc, char** argv) {
   std::string hostname = "localhost";
   if (FLAGS_server_host == "") {
     std::cout << "Using remote server: false" << std::endl;
-    server.reset(new TestServer("rpc_server", FLAGS_server_port));
+    server.reset(new TestServer("rpc_server", FLAGS_server_port, FLAGS_context));
     server->Start();
   } else {
     std::cout << "Using remote server: true" << std::endl;
