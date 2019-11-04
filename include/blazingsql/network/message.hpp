@@ -11,37 +11,27 @@
 #include <thread>
 #include <zmq.hpp>
 
-class GenericMessage {
+
+class Message {
 public:
-  virtual ~GenericMessage() = default;
+  Message() = default;
 
-  virtual GenericMessage& operator=(std::string rhs) = 0;
+  Message(const std::string& data) : data_{data} {}
 
-  virtual size_t size()  = 0 ;
-  virtual char* data() const = 0 ;
-};
+  Message(std::string&& data) : data_{std::move(data)} {}
 
+  Message(const char* data, int length) : data_{data, data + length} {}
 
-class String : public GenericMessage {
-public:
-  String() = default;
+  Message(const Message & other, const std::lock_guard<std::mutex>&) : Message{other.data_} {}
 
-  String(const std::string& data) : data_{data} {}
+  Message(Message && other, const std::lock_guard<std::mutex>&) noexcept : data_{std::move(other.data_)} {}
 
-  String(std::string&& data) : data_{std::move(data)} {}
+  Message(const Message & other) : Message{other, std::lock_guard<std::mutex>(other.mutex_)} {}
 
-  String(const char* data) : data_{data} {}
+  Message(Message && other) noexcept
+      : Message{std::forward<Message>(other), std::lock_guard<std::mutex>(other.mutex_)} {}
 
-  String(const String& other, const std::lock_guard<std::mutex>&) : String{other.data_} {}
-
-  String(String&& other, const std::lock_guard<std::mutex>&) noexcept : data_{std::move(other.data_)} {}
-
-  String(const String& other) : String{other, std::lock_guard<std::mutex>(other.mutex_)} {}
-
-  String(String&& other) noexcept
-      : String{std::forward<String>(other), std::lock_guard<std::mutex>(other.mutex_)} {}
-
-  String& operator=(const String& rhs) {
+  Message & operator=(const Message & rhs) {
     if (this != std::addressof(rhs)) {
       std::lock(mutex_, rhs.mutex_);
       std::lock_guard<std::mutex> lock{mutex_, std::adopt_lock};
@@ -51,7 +41,7 @@ public:
     return *this;
   }
 
-  String& operator=(String&& rhs) noexcept {
+  Message & operator=(Message && rhs) noexcept {
     if (this != std::addressof(rhs)) {
       std::lock(mutex_, rhs.mutex_);
       std::lock_guard<std::mutex> lock{mutex_, std::adopt_lock};
@@ -61,7 +51,7 @@ public:
     }
     return *this;
   }
-  String& operator=(std::string rhs) {
+  Message & operator=(std::string rhs) {
     std::lock_guard<std::mutex> lock{mutex_};
     data_ = rhs;
     return *this;
@@ -70,7 +60,7 @@ public:
   /**
    * @brief Returns true if lhs is equal to rhs, false otherwise.
    */
-  inline bool operator==(const String& rhs) const {
+  inline bool operator==(const Message & rhs) const {
     std::lock_guard<std::mutex> lock{mutex_};
     return (data_ == rhs.data_);
   }
@@ -116,7 +106,7 @@ public:
   }
 
   static std::string getTopic() {
-    return "STRG";
+    return "[MESSAGE]";
   }
 
 private:

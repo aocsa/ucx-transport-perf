@@ -71,7 +71,6 @@ public:
   int port() const { return port_; }
 
 private:
-  Server<String> server;
   std::string executable_name_;
   int port_;
   std::shared_ptr<boost::process::child> server_process_;

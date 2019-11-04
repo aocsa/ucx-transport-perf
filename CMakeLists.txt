@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 project(utecdf C CXX)
 
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/" ${CMAKE_MODULE_PATH})
+message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+
 # - conda environment -----------------------------------------------------------------------------
 if ("$ENV{CONDA_BUILD}" STREQUAL "1")
     set(PREFIX $ENV{PREFIX})
@@ -11,10 +15,18 @@ elseif (DEFINED ENV{CONDA_PREFIX})
     set(PREFIX $ENV{CONDA_PREFIX})
     message(STATUS "Conda environment detected, CMAKE_SYSTEM_PREFIX_PATH set to: ${CMAKE_SYSTEM_PREFIX_PATH}")
 
-    include_directories($ENV{CONDA_PREFIX}/include $ENV{PREFIX}/include)
+    include_directories(
+            ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/include
+            $ENV{CONDA_PREFIX}/include $ENV{PREFIX}/include)
     link_directories($ENV{CONDA_PREFIX}/lib)
 endif ()
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD_REQURIED ON)
 
 include(FeatureSummary)
 include(CheckIncludeFiles)
@@ -25,6 +37,8 @@ find_package(Threads)
 find_package(GTest REQUIRED)
 find_package(fmt REQUIRED)
 enable_testing ()
+find_package(Threads)
+include(ConfigureUCX)
 
 if (GTEST_FOUND)
     enable_testing ()
@@ -105,6 +119,7 @@ blazingdb_artifact (
         $ENV{PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/include
         $ENV{CONDA_PREFIX}/include
+        /usr/local/cuda/include
 
         LIBRARIES
         fmt::fmt
@@ -116,11 +131,38 @@ blazingdb_artifact (
         gflags
         spdlog
 
+        cudart
+        cuda
+        ${CUDA_CUDA_LIBRARY}
+        ${CUDA_NVRTC_LIBRARY}
+        ${CUDA_NVTX_LIBRARY}
+
+        ${GDR_STATIC_LIB}
+        ${UCX_UCT_SHARED_LIB}
+        ${UCX_UCS_SHARED_LIB}
+        ${UCX_UCM_SHARED_LIB}
+
+        PREFIX
+        blazingdb
+
         PUBLIC_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/include/
 
         SOURCES
-        src/socket.cpp
+            src/socket.cpp
+            src/blazingdb/uc/Capabilities.cpp
+            src/blazingdb/uc/Context.cpp
+            src/blazingdb/uc/ContextHelpers.cpp
+            src/blazingdb/uc/internal/agents/AddressableAgent.cpp
+            src/blazingdb/uc/internal/agents/ManagedAgent.cpp
+            src/blazingdb/uc/internal/agents/ViewAgent.cpp
+            src/blazingdb/uc/internal/buffers/LinkerBuffer.cpp
+            src/blazingdb/uc/internal/buffers/RemoteBuffer.cpp
+            src/blazingdb/uc/internal/buffers/ViewBuffer.cpp
+            src/blazingdb/uc/internal/buffers/records/RemotableRecord.cpp
+            src/blazingdb/uc/internal/buffers/transports/ZCopyTransport.cpp
+            src/blazingdb/uc/internal/ManagedContext.cpp
+            src/blazingdb/uc/internal/ViewContext.cpp
 )
 
 add_executable(rpc_server server.cpp)
@@ -132,6 +174,6 @@ target_include_directories (rpc_client PUBLIC src)
 target_link_libraries (rpc_client zero_rpc)
 
 
-add_executable(rpc_benchmark main.cpp)
+add_executable(rpc_benchmark bench.cpp)
 target_include_directories (rpc_benchmark PUBLIC src)
 target_link_libraries (rpc_benchmark zero_rpc)

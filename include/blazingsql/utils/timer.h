@@ -1,5 +1,4 @@
-
-
+#pragma once
 
 class StopWatch {
   // This clock should give us wall clock time

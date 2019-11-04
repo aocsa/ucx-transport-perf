@@ -3,7 +3,10 @@
 
 #include "blazingsql/utils/macros.h"
 #include "socket.hpp"
+#include "message.hpp"
+
 #include <atomic>
+#include <blazingsql/api.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -12,11 +15,10 @@
 #include <thread>
 #include <zmq.hpp>
 
-template<class T>
 class Client {
 public:
-  explicit Client(const std::string& address, int timeout = 2000, int linger = -1)
-      : socket_{zmq_socket_type::req, T::getTopic()},
+  explicit Client(const std::string& address, const std::string& topic,  int timeout = 2000, int linger = -1)
+      : socket_{zmq_socket_type::req, topic},
         address_{address},
         timeout_{timeout},
         linger_{linger}
@@ -28,21 +30,25 @@ public:
   * @brief Sends the request to a server and waits for an answer.
   * @param [in,out] msg - simple_msgs class wrapper for Flatbuffer messages..
   */
-  bool request(T& msg) {
+  Result<Message, Status> send(Message& msg) {
     bool success{false};
-
     // Send the message to the Server and receive back the response.
-    if (socket_.send(msg, "[SIMPLE Client] - ")) {
-      if (socket_.receive(msg, "[SIMPLE Client] - ")) {
+    // Initialize the message itself using the buffer data.
+    zmq::message_t message{msg.data(), msg.size()};
+    if (socket_.send(message, "[TRANSPORT Client]:send - ")) {
+      zmq::message_t response_message;
+      if (socket_.receive(response_message, "[TRANSPORT Client]:receive - ")) {
+        Message response((const char*)response_message.data(), response_message.size());
         success = true;
+        return Ok(response);
       } else {
-        std::cerr << "[SIMPLE Client] - No reply received. Aborting this request." << std::endl;
+        std::cerr << "[TRANSPORT Client] - No reply received. Aborting this send." << std::endl;
         // If no message was received back we need to delete the existing socket and create a new one.
         socket_.close();
         initClient();
       }
     }
-    return success;
+    return Err(Status(StatusCode::ExecutionError, "[client] Can't resolve send "));
   }
 
   /**

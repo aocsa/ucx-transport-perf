@@ -11,7 +11,7 @@
 #include <string>
 #include <thread>
 #include <zmq.hpp>
-template <typename T>
+
 class Server {
 public:
   Server() = default;
@@ -28,9 +28,9 @@ public:
    * @param [in] linger - Time the unsent messages linger in memory after the socket
    * is closed. In milliseconds. Default is -1 (infinite).
    */
-  explicit Server(const std::string& address, const std::function<void(T&)>& callback, int timeout = 1000,
+  explicit Server(const std::string& address, const std::string& topic, const std::function<void(Message&)>& callback, int timeout = 1000,
                   int linger = -1)
-      : socket_{new Socket(zmq_socket_type::rep, T::getTopic())}, callback_{callback} {
+      : socket_{new Socket(zmq_socket_type::rep, topic)}, callback_{callback} {
     socket_->set_timeout(timeout);
     socket_->setLinger(linger);
     socket_->bind(address);
@@ -108,10 +108,15 @@ private:
    */
   void awaitRequest(std::shared_ptr<std::atomic<bool>> alive, std::shared_ptr<Socket> socket) {
     while (alive->load()) {
-      T msg;
-      if (socket->receive(msg, "[SIMPLE Server] - ")) {
-        if (alive->load()) { callback_(msg); }
-        if (alive->load()) { reply(socket.get(), msg); }
+      zmq::message_t response_message;
+      if (socket->receive(response_message, "[TRANSPORT Server] - ")) {
+        Message msg = Message((const char*)response_message.data(), response_message.size());
+        if (alive->load()) {
+          callback_(msg);
+        }
+        if (alive->load()) {
+          reply(socket.get(), msg);
+        }
       }
     }
   }
@@ -120,10 +125,13 @@ private:
    * @brief Sends the message back to the client who requested it.
    * @param [in] msg - The message to be sent.
    */
-  void reply(Socket* socket, T& msg) { socket->send(msg, "[SIMPLE Server] - "); }
+  void reply(Socket* socket, Message& msg) {
+    zmq::message_t message{msg.data(), msg.size()};
+    socket->send(message, "[TRANSPORT Server] - ");
+  }
 
   std::shared_ptr<std::atomic<bool>> alive_{nullptr};  //! Flag keeping track of the internal thread's state.
   std::shared_ptr<Socket> socket_{nullptr};     //! The internal socket.
-  std::function<void(T&)> callback_;                   //! The callback function called at each message arrival.
+  std::function<void(Message&)> callback_;                   //! The callback function called at each message arrival.
   std::thread server_thread_{};                        //! The internal Server thread on which the given callback runs.
 };
