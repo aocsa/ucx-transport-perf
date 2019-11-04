@@ -26,7 +26,19 @@ void example_callback(Message &request) {
   auto context = CreateUCXContext(FLAGS_context);
   auto agent = context->Agent();
   auto buffer = agent->Register(data, BUFFER_LENGTH);
+
+  std::cout << "buffer_size:" << std::dec << context->serializedRecordSize() << std::endl;
+  std::cout << "buffer_descriptors:" << std::endl;
+  size_t checksum = 0;
+  for (size_t i = 0; i < context->serializedRecordSize(); i++)
+  {
+    std::cout << +(unsigned char)request.data()[i] << ", ";
+    checksum += (unsigned char)request.data()[i];
+  }
+  std::cout << "checksum:" << checksum << std::endl;
+
   auto transport = buffer->Link((const uint8_t *)request.data(), request.size());
+  Print("peer", data, BUFFER_LENGTH);	 
   auto future = transport->Get();
   request.set("OK");
 }

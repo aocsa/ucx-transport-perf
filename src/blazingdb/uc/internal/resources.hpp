@@ -69,7 +69,7 @@ public:
 
   const char *
   dev_name() const noexcept final {
-    static const char dev_name[] = "gdrcopy0";
+    static const char dev_name[] = "cuda";
     return static_cast<const char *>(dev_name);
   }
 

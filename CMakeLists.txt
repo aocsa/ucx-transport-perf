@@ -136,6 +136,7 @@ blazingdb_artifact (
         ${CUDA_CUDA_LIBRARY}
         ${CUDA_NVRTC_LIBRARY}
         ${CUDA_NVTX_LIBRARY}
+        $ENV{CONDA_PREFIX}/lib64/libgdrapi.so
 
         ${GDR_STATIC_LIB}
         ${UCX_UCT_SHARED_LIB}
@@ -164,6 +165,7 @@ blazingdb_artifact (
             src/blazingdb/uc/internal/ManagedContext.cpp
             src/blazingdb/uc/internal/ViewContext.cpp
 )
+message (STATUS "***GDR_STATIC_LIB  ${GDR_STATIC_LIB}")
 
 add_executable(ucx_server server.cpp)
 target_include_directories (ucx_server PUBLIC src)

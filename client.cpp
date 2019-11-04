@@ -31,8 +31,8 @@ int main(int argc, char **argv) {
   size_t checksum = 0;
   std::cout << "buffer_descriptors:" << std::endl;
   for (size_t i = 0; i < buffer_descriptors_serialized->Size(); i++) {
-    std::cout << (int)buffer_descriptors[i] << ", ";
-    checksum += (int)buffer_descriptors[i];
+    std::cout << +(unsigned char)buffer_descriptors[i] << ", ";
+    checksum += (unsigned char)buffer_descriptors[i];
   }
   std::cout << "checksum:" << std::dec << checksum << std::endl;
   Client client{"tcp://localhost:" + std::to_string(FLAGS_port), "[string]"};
