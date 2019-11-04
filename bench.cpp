@@ -19,10 +19,13 @@ DEFINE_int32(records_per_stream, 1 << 15, "Total records per stream");
 DEFINE_int32(records_per_batch, 1, "Total records per batch within stream");
 DEFINE_bool(test_put, false, "Test DoPut instead of DoGet");
 DEFINE_string(context, "tcp", "UCX Context");
+DEFINE_int32(device_id_server, 0, "device_id_server");
+DEFINE_int32(device_id_client, 0, "device_id_client");
 
 std::atomic<size_t> counter{0};
 
 Result<PerformanceResult, Status> RunDoGetTest(Client* client,  std::vector<Message> & batches) {
+  cudaSetDevice(FLAGS_device_id_client);
   using namespace blazingdb::uc;
   const int bytes_per_record = 32;
   int64_t num_bytes = 0;
@@ -104,7 +107,7 @@ int main(int argc, char** argv) {
   std::string hostname = "localhost";
   if (FLAGS_server_host == "") {
     std::cout << "Using remote server: false" << std::endl;
-    server.reset(new TestServer("ucx_server", FLAGS_server_port, FLAGS_context));
+    server.reset(new TestServer("ucx_server", FLAGS_server_port, FLAGS_context, FLAGS_device_id_server));
     server->Start();
   } else {
     std::cout << "Using remote server: true" << std::endl;

@@ -11,9 +11,12 @@
 
 DEFINE_int32(port, 5555, "Server port to listen on");
 DEFINE_string(context, "tcp", "UCX Context");
+DEFINE_int32(device_id, 0, "Device ID Server");
 
 std::atomic<size_t> counter{0};
 void example_callback(Message &request) {
+  cudaSetDevice(FLAGS_device_id);
+
   if (counter.load() % 10000 == 0)
     std::cout << counter.load() << std::endl;
   counter.store(counter.load() + 1);
@@ -33,7 +36,7 @@ int main(int argc, char **argv) {
 
   const int SLEEP_TIME{100000};  //! Milliseconds.
   std::cout << "***Creating a server****" << "tcp://*:" +
-  std::to_string(FLAGS_port) << "|" << FLAGS_context << std::endl;
+  std::to_string(FLAGS_port) << "|" << FLAGS_context << "|" <<  FLAGS_device_id << std::endl;
 
   // A Server listening on port 5555 for requests from any IP address.
   Server server{"tcp://*:" + std::to_string(FLAGS_port), "[string]", example_callback};
