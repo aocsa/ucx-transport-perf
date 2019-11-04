@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
   std::string hostname = "localhost";
   if (FLAGS_server_host == "") {
     std::cout << "Using remote server: false" << std::endl;
-    server.reset(new TestServer("rpc_server", FLAGS_server_port, FLAGS_context));
+    server.reset(new TestServer("ucx_server", FLAGS_server_port, FLAGS_context));
     server->Start();
   } else {
     std::cout << "Using remote server: true" << std::endl;

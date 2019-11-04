@@ -97,7 +97,7 @@ void RemotableRecord::SetPeer(const void *bytes) noexcept {
   std::memcpy(reinterpret_cast<void *>(*rkey_), data, size);
   std::memcpy(address_, data + size, sizeof(*address_));
   // if (0U == (md_attr_.cap.reg_mem_types & UC_BIT(UCS_MEMORY_TYPE_CUDA))) {
-  PrintRecordData(bytes, size + sizeof(void *));
+//  PrintRecordData(bytes, size + sizeof(void *));
 
   CHECK_UCS(uct_rkey_unpack(component_,
                             reinterpret_cast<void *>(*rkey_), &key_bundle_));
@@ -117,7 +117,7 @@ RemotableRecord::PlainSerialized::PlainSerialized(const uct_rkey_t &rkey,
   std::memcpy(data_, reinterpret_cast<const void *>(rkey), offset);
   std::memcpy(data_ + offset, &pointer, sizeof(pointer));
 
-  PrintRecordData(data_, size_);
+//  PrintRecordData(data_, size_);
 }
 
 std::uint64_t RemotableRecord::count = -1;
