@@ -165,15 +165,15 @@ blazingdb_artifact (
             src/blazingdb/uc/internal/ViewContext.cpp
 )
 
-add_executable(rpc_server server.cpp)
-target_include_directories (rpc_server PUBLIC src)
-target_link_libraries (rpc_server zero_rpc)
+add_executable(ucx_server server.cpp)
+target_include_directories (ucx_server PUBLIC src)
+target_link_libraries (ucx_server zero_rpc)
 
-add_executable(rpc_client client.cpp)
-target_include_directories (rpc_client PUBLIC src)
-target_link_libraries (rpc_client zero_rpc)
+add_executable(ucx_client client.cpp)
+target_include_directories (ucx_client PUBLIC src)
+target_link_libraries (ucx_client zero_rpc)
 
 
-add_executable(rpc_benchmark bench.cpp)
-target_include_directories (rpc_benchmark PUBLIC src)
-target_link_libraries (rpc_benchmark zero_rpc)
+add_executable(ucx_benchmark bench.cpp)
+target_include_directories (ucx_benchmark PUBLIC src)
+target_link_libraries (ucx_benchmark zero_rpc)

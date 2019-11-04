@@ -6,7 +6,12 @@
 #include <string>
 #include "blazingdb/uc/API.hpp"
 
-static constexpr std::size_t BUFFER_LENGTH = 20;
+#ifdef BUFFER_SIZE
+  static constexpr std::size_t BUFFER_LENGTH = BUFFER_SIZE;
+#else
+  static constexpr std::size_t BUFFER_LENGTH = 128;
+#endif
+
 static constexpr std::uint64_t  ownSeed    = 0x1111111111111111lu;
 static constexpr std::uint64_t  peerSeed   = 0x2222222222222222lu;
 static constexpr std::uint64_t  twinSeed   = 0x3333333333333333lu;

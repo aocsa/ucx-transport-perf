@@ -133,6 +133,5 @@ int main(int argc, char** argv) {
   if (!s.isOk()) {
     std::cerr << "Failed with error: << " << s.unwrapErr().text << std::endl;
   }
-
   return 0;
 }

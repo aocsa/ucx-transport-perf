@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
   const int SLEEP_TIME{100000};  //! Milliseconds.
   std::cout << "***Creating a server****" << "tcp://*:" +
-  std::to_string(FLAGS_port) << std::endl;
+  std::to_string(FLAGS_port) << "|" << FLAGS_context << std::endl;
 
   // A Server listening on port 5555 for requests from any IP address.
   Server server{"tcp://*:" + std::to_string(FLAGS_port), "[string]", example_callback};
