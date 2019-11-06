@@ -119,7 +119,7 @@ blazingdb_artifact (
         $ENV{PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/include
         $ENV{CONDA_PREFIX}/include
-        /usr/local/cuda/include
+        /usr/local/cuda-10.0/include
 
         LIBRARIES
         Threads::Threads
