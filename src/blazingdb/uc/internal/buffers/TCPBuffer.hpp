@@ -41,9 +41,6 @@ public:
                                   size_t recordSize) final {
     auto cudaStatus = cudaMemcpy((void*)this->data_, host_pointer, recordSize, cudaMemcpyHostToDevice);
     assert(cudaSuccess == cudaStatus);
-
-//    cudaStatus = cudaMemcpy(buffer, data + offset, size, cudaMemcpyHostToDevice);
-
     return std::make_unique<TCPTransport>();
   }
  

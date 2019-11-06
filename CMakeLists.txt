@@ -113,7 +113,7 @@ endfunction ()
 
 blazingdb_artifact (
         TARGET
-        zero_rpc
+        ucx_perf
 
         INCLUDES PUBLIC
         $ENV{PROJECT_SOURCE_DIR}/include
@@ -122,12 +122,12 @@ blazingdb_artifact (
         /usr/local/cuda/include
 
         LIBRARIES
-        fmt::fmt
         Threads::Threads
         zmq
         libboost_filesystem.a
         libboost_system.a
         libboost_regex.a
+        fmt::fmt
         gflags
         spdlog
 
@@ -169,13 +169,13 @@ message (STATUS "***GDR_STATIC_LIB  ${GDR_STATIC_LIB}")
 
 add_executable(ucx_server server.cpp)
 target_include_directories (ucx_server PUBLIC src)
-target_link_libraries (ucx_server zero_rpc)
+target_link_libraries (ucx_server ucx_perf)
 
 add_executable(ucx_client client.cpp)
 target_include_directories (ucx_client PUBLIC src)
-target_link_libraries (ucx_client zero_rpc)
+target_link_libraries (ucx_client ucx_perf)
 
 
 add_executable(ucx_benchmark bench.cpp)
 target_include_directories (ucx_benchmark PUBLIC src)
-target_link_libraries (ucx_benchmark zero_rpc)
+target_link_libraries (ucx_benchmark ucx_perf)
