@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
   Client client{"tcp://localhost:" + std::to_string(FLAGS_port), "[string]"};
   Message msg((const char*)buffer_descriptors, buffer_descriptors_serialized->Size());
   auto res = client.send(msg);
+  cudaFree((void*)data);
   if (res.isOk()) {
     std::cout << "Receiving: \n" << res.unwrap().data() << std::endl;
   } else {

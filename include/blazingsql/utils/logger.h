@@ -2,7 +2,8 @@
 #define LOGGER_H
 
 #include <iostream>
-#include "spdlog/include/spdlog/spdlog.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 namespace simple_logger {
 class Logger {
@@ -10,14 +11,13 @@ private:
   std::shared_ptr<spdlog::logger> console_logger;
 
   Logger() {
-    std::cout << "Called constructor of Logger" << std::endl;
     try {
-      this->console_logger = spdlog::stdout_logger_st("console");
+      this->console_logger = spdlog::stdout_color_mt("console");
       spdlog::set_level(spdlog::level::debug);
       spdlog::set_pattern("%l\t: %v");
     }
     catch (const spdlog::spdlog_ex &ex) {
-      std::cout << "Log failed: " << ex.what() << std::endl;
+      std::cerr << "Log failed: " << ex.what() << std::endl;
       exit(-1);
     }
   }
@@ -27,7 +27,7 @@ private:
 
 public:
   ~Logger() {
-    std::cout << "Called destructor of Logger" << std::endl;
+
   }
 
   static Logger &get_logger() {
@@ -62,13 +62,13 @@ public:
 };
 }
 
-#ifdef ALLOCATE_LOGGER
+//#ifdef ALLOCATE_LOGGER
 
 simple_logger::Logger& my_logger = simple_logger::Logger::get_logger();
 
-#else
-extern simple_logger::Logger& my_logger;
-#endif
+//#else
+//extern simple_logger::Logger& my_logger;
+//#endif
 
 
 #define INFO(...)        my_logger.info(__VA_ARGS__)

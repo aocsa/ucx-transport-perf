@@ -13,19 +13,13 @@ DEFINE_string(server_host, "",
 "An existing performance server to benchmark against (leave blank to spawn "
 "one automatically)");
 DEFINE_int32(server_port, 5555, "The port to connect to");
-DEFINE_int32(num_servers, 1, "Number of performance servers to run");
-DEFINE_int32(num_threads, 1, "Number of concurrent gets");
 DEFINE_int32(records_per_stream, 1 << 15, "Total records per stream");
-DEFINE_int32(records_per_batch, 1, "Total records per batch within stream");
-DEFINE_bool(test_put, false, "Test DoPut instead of DoGet");
 DEFINE_string(context, "tcp", "UCX Context");
 DEFINE_int32(device_id_server, 0, "device_id_server");
-DEFINE_int32(device_id_client, 0, "device_id_client");
+DEFINE_int32(n_devices, 1, "num of devices");
 
-std::atomic<size_t> counter{0};
-
-Result<PerformanceResult, Status> RunDoGetTest(Client* client,  std::vector<Message> & batches) {
-  cudaSetDevice(FLAGS_device_id_client);
+Result<PerformanceResult, Status> RunDoGetTest(Client* client,  int device_id, std::vector<Message> & batches) {
+  cudaSetDevice(device_id);
   using namespace blazingdb::uc;
   const int bytes_per_record = 32;
   int64_t num_bytes = 0;
@@ -41,16 +35,17 @@ Result<PerformanceResult, Status> RunDoGetTest(Client* client,  std::vector<Mess
 
     Message msg((const char*)buffer_descriptors, buffer_descriptors_serialized->Size());
     auto res = client->send(msg);
-    counter.store( counter.load() + 1);
+    cudaFree((void*)data);
+
     num_records += BUFFER_LENGTH;
     num_bytes += BUFFER_LENGTH * bytes_per_record;
   }
   return Ok(PerformanceResult{num_records, num_bytes});
 }
 
-auto ConsumeStream(PerformanceStats& stats, Client *client, std::vector<Message>& batches) -> bool {
+auto ConsumeStream(PerformanceStats& stats, Client *client, int device_id, std::vector<Message>& batches) -> bool {
   // TODO(wesm): Use location from endpoint, same host/port for now
-  const auto& result = RunDoGetTest(client, batches);
+  const auto& result = RunDoGetTest(client, device_id, batches);
   if (result.isOk()) {
     const PerformanceResult& perf = result.unwrap();
     stats.Update(perf.num_records, perf.num_bytes);
@@ -59,7 +54,7 @@ auto ConsumeStream(PerformanceStats& stats, Client *client, std::vector<Message>
   return true;
 };
 
-Result<bool, Status>  RunPerformanceTest(Client* client, bool test_put) {
+Result<bool, Status>  RunPerformanceTest(Client* client) {
   PerformanceStats stats;
 
   StopWatch timer;
@@ -68,11 +63,12 @@ Result<bool, Status>  RunPerformanceTest(Client* client, bool test_put) {
   //  thread_pool pool;
   std::vector<Message> batches(FLAGS_records_per_stream, Message(""));
 
-  auto num_concurrent_clients = FLAGS_num_threads;
+  auto num_concurrent_clients = FLAGS_n_devices;
   std::vector<std::thread> tasks;
   for (int index = 0; index < num_concurrent_clients; ++index) {
     //    tasks.emplace_back(pool.submit(ConsumeStream, batches));
-    tasks.emplace_back(std::thread(ConsumeStream, std::ref(stats), client, std::ref(batches)));
+    // TODO: change 0 by index
+    tasks.emplace_back(std::thread(ConsumeStream, std::ref(stats), client, 0, std::ref(batches)));
   }
 
   // Wait for tasks to finish
@@ -89,7 +85,7 @@ Result<bool, Status>  RunPerformanceTest(Client* client, bool test_put) {
   constexpr double kMegabyte = static_cast<double>(1 << 10);
 
   // Check that number of rows read is as expected
-//  if (stats.total_records != static_cast<int64_t>(total_records)) {
+//  if (stats.link_total_time != static_cast<int64_t>(link_total_time)) {
 //    return Err(Status(StatusCode::Invalid, "Did not consume expected number of records"));
 //  }
   std::cout << "Bytes read: " << stats.total_bytes << std::endl;
@@ -115,11 +111,7 @@ int main(int argc, char** argv) {
   }
 
   std::cout << "Testing method: ";
-  if (FLAGS_test_put) {
-    std::cout << "DoPut";
-  } else {
-    std::cout << "DoGet";
-  }
+  std::cout << "DoGet";
   std::cout << std::endl;
 
   std::cout << "Server host: " << hostname << std::endl
@@ -127,7 +119,7 @@ int main(int argc, char** argv) {
 
   Client client("tcp://localhost:" + std::to_string(FLAGS_server_port), "[string]");
 
-  auto s = RunPerformanceTest(&client, FLAGS_test_put);
+  auto s = RunPerformanceTest(&client);
 
   if (server) {
     server->Stop();

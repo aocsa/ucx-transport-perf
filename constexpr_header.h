@@ -9,7 +9,7 @@
 #ifdef BUFFER_SIZE
   static constexpr std::size_t BUFFER_LENGTH = BUFFER_SIZE;
 #else
-  static constexpr std::size_t BUFFER_LENGTH = 128;
+  static constexpr std::size_t BUFFER_LENGTH = 65535 * sizeof(int64_t);
 #endif
 
 static constexpr std::uint64_t  ownSeed    = 0x1111111111111111lu;
