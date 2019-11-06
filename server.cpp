@@ -44,7 +44,7 @@ void example_callback(Message &request) {
       static_cast<double>(elapsed_nanos) / static_cast<double>(1000000000);
   stats.Update(time_elapsed, BUFFER_LENGTH);
 
-  if (counter.load() % 10000 == 0) {
+  if (counter.load() % 5000 == 0) {
     LOG("iter = {} | context = {} | link_time = {} | bytes = {}", counter.load(), FLAGS_context, stats.link_total_time, stats.total_bytes);
     stats.Reset();
   }

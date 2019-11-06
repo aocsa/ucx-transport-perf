@@ -13,10 +13,10 @@ DEFINE_string(server_host, "",
 "An existing performance server to benchmark against (leave blank to spawn "
 "one automatically)");
 DEFINE_int32(server_port, 5555, "The port to connect to");
-DEFINE_int32(records_per_stream, 1 << 15, "Total records per stream");
+DEFINE_int32(records_per_stream, 1 << 14, "Total records per stream");
 DEFINE_string(context, "tcp", "UCX Context");
 DEFINE_int32(device_id_server, 0, "device_id_server");
-DEFINE_int32(n_devices, 1, "num of devices");
+DEFINE_int32(device_id_client, 0, "device_id_client");
 
 Result<PerformanceResult, Status> RunDoGetTest(Client* client,  int device_id, std::vector<Message> & batches) {
   cudaSetDevice(device_id);
@@ -63,12 +63,12 @@ Result<bool, Status>  RunPerformanceTest(Client* client) {
   //  thread_pool pool;
   std::vector<Message> batches(FLAGS_records_per_stream, Message(""));
 
-  auto num_concurrent_clients = FLAGS_n_devices;
+  auto num_concurrent_clients = 1;
   std::vector<std::thread> tasks;
   for (int index = 0; index < num_concurrent_clients; ++index) {
     //    tasks.emplace_back(pool.submit(ConsumeStream, batches));
     // TODO: change 0 by index
-    tasks.emplace_back(std::thread(ConsumeStream, std::ref(stats), client, 0, std::ref(batches)));
+    tasks.emplace_back(std::thread(ConsumeStream, std::ref(stats), client, FLAGS_device_id_client, std::ref(batches)));
   }
 
   // Wait for tasks to finish
