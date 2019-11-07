@@ -137,7 +137,6 @@ blazingdb_artifact (
         ${CUDA_CUDA_LIBRARY}
         ${CUDA_NVRTC_LIBRARY}
         ${CUDA_NVTX_LIBRARY}
-        $ENV{CONDA_PREFIX}/lib64/libgdrapi.so
 
         ${GDR_STATIC_LIB}
         ${UCX_UCT_SHARED_LIB}
