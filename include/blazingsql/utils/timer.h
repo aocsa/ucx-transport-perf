@@ -41,19 +41,19 @@ struct PerformanceStats {
 
 
 struct PerformanceTimeStats {
-  PerformanceTimeStats() : link_total_time(0), total_bytes(0) {}
+  PerformanceTimeStats() : bandwidth(0), total_bytes(0) {}
   std::mutex mutex;
-  double link_total_time;
+  double bandwidth;
   int64_t total_bytes;
 
   void Update(const double total_time, const int64_t total_bytes) {
     std::lock_guard<std::mutex> lock(this->mutex);
-    this->link_total_time += total_time;
+    this->bandwidth += total_time;
     this->total_bytes += total_bytes;
   }
   void Reset() {
     std::lock_guard<std::mutex> lock(this->mutex);
-    this->link_total_time = 0;
+    this->bandwidth = 0;
     this->total_bytes = 0;
   }
 };

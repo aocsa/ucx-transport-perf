@@ -1,6 +1,7 @@
 #include "blazingdb/uc/API.hpp"
 #include "blazingsql/api.hpp"
 #include "blazingsql/utils/logger.h"
+#include "blazingsql/utils/helper_timer.h"
 
 #include "constexpr_header.h"
 #include <atomic>
@@ -16,6 +17,7 @@ DEFINE_string(context, "tcp", "UCX Context");
 DEFINE_int32(device_id, 0, "Device ID Server");
 PerformanceTimeStats stats;
 std::atomic<int32_t > counter{1};
+
 void example_callback(Message &request) {
   cudaSetDevice(FLAGS_device_id);
   using namespace blazingdb::uc;
@@ -24,37 +26,45 @@ void example_callback(Message &request) {
   auto agent = context->Agent();
   auto buffer = agent->Register(data, BUFFER_LENGTH);
 
-//  std::cout << "buffer_size:" << std::dec << context->serializedRecordSize() << std::endl;
-//  std::cout << "buffer_descriptors:" << std::endl;
-//  size_t checksum = 0;
-//  for (size_t i = 0; i < context->serializedRecordSize(); i++)
-//  {
-//    std::cout << +(unsigned char)request.data()[i] << ", ";
-//    checksum += (unsigned char)request.data()[i];
-//  }
-//  std::cout << "checksum:" << checksum << std::endl;
-  StopWatch timer;
-  timer.Start();
-  auto transport = buffer->Link((const uint8_t *)request.data(), request.size());
-  auto future = transport->Get();
-//  Print("peer", data, BUFFER_LENGTH);
+  StopWatchInterface *timer = nullptr;
+  float elapsedTimeInMs = 0.0f;
+  float bandwidthInMBs = 0.0f;
+  cudaEvent_t start, stop;
+  sdkCreateTimer(&timer);
+  checkCudaErrors(cudaEventCreate(&start));
+  checkCudaErrors(cudaEventCreate(&stop));
 
-  uint64_t elapsed_nanos = timer.Stop();
-  double time_elapsed =
-      static_cast<double>(elapsed_nanos) / static_cast<double>(1000000000);
-  stats.Update(time_elapsed, BUFFER_LENGTH);
+  auto memSize = BUFFER_LENGTH;
 
+  sdkStartTimer(&timer);
+    checkCudaErrors(cudaEventRecord(start, 0));
+    auto transport = buffer->Link((const uint8_t *)request.data(), request.size());
+    auto future = transport->Get();
+  checkCudaErrors(cudaEventRecord(stop, 0));
+  sdkStopTimer(&timer);
+  checkCudaErrors(cudaDeviceSynchronize());
+
+  checkCudaErrors(cudaEventElapsedTime(&elapsedTimeInMs, start, stop));
+  sdkResetTimer(&timer);
+
+  bandwidthInMBs = 2.0f * ((float)(1<<10) * memSize) / (elapsedTimeInMs * (float)(1 << 20));
+  stats.Update(bandwidthInMBs, memSize);
   if (counter.load() % 5000 == 0) {
-    LOG("iter = {} | context = {} | link_time = {} | bytes = {}", counter.load(), FLAGS_context, stats.link_total_time, stats.total_bytes);
+    LOG("iter = {} | context = {} |  Bandwidth(MB/s) = {}", counter.load(), FLAGS_context, stats.bandwidth/5000);
     stats.Reset();
   }
   cudaFree((void*)data);
+
+  sdkDeleteTimer(&timer);
+  checkCudaErrors(cudaEventDestroy(stop));
+  checkCudaErrors(cudaEventDestroy(start));
 
   counter.store(counter.load() + 1);
   request.set("OK");
 }
 
 int main(int argc, char **argv) {
+  cuInit(0);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   const int SLEEP_TIME{100000};  //! Milliseconds.

@@ -85,7 +85,7 @@ Result<bool, Status>  RunPerformanceTest(Client* client) {
   constexpr double kMegabyte = static_cast<double>(1 << 10);
 
   // Check that number of rows read is as expected
-//  if (stats.link_total_time != static_cast<int64_t>(link_total_time)) {
+//  if (stats.bandwidth != static_cast<int64_t>(bandwidth)) {
 //    return Err(Status(StatusCode::Invalid, "Did not consume expected number of records"));
 //  }
   std::cout << "Bytes read: " << stats.total_bytes << std::endl;

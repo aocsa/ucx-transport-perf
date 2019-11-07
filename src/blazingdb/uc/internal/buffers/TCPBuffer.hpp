@@ -39,7 +39,7 @@ public:
 
   std::unique_ptr<Transport> Link(const std::uint8_t *host_pointer,
                                   size_t recordSize) final {
-    auto cudaStatus = cudaMemcpy((void*)this->data_, host_pointer, recordSize, cudaMemcpyHostToDevice);
+    auto cudaStatus = cudaMemcpyAsync((void*)this->data_, host_pointer, recordSize, cudaMemcpyHostToDevice, 0);
     assert(cudaSuccess == cudaStatus);
     return std::make_unique<TCPTransport>();
   }
